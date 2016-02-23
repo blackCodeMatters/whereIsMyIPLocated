@@ -9,6 +9,7 @@
 import UIKit
 import MapKit
 
+
 class ViewController: UIViewController, MKMapViewDelegate {
 
     
@@ -35,41 +36,74 @@ class ViewController: UIViewController, MKMapViewDelegate {
         
         let task = NSURLSession.sharedSession().dataTaskWithURL(url) { (data, response, error) -> Void in
             
+            
             if let urlContent = data {
                 
                 do {
                     
                     let jsonResult = try NSJSONSerialization.JSONObjectWithData(urlContent, options: NSJSONReadingOptions.MutableContainers)
                     
-                    print(jsonResult["city"])
+                    //print(jsonResult)
+                    print ("response:\(jsonResult)")
+                    
+                    
+                    // this gets back the main thread which is the UI thread
+                    // if you try to update the UI thread from a background thread (which you are in right now, you would get errors
+                    let queue = dispatch_get_main_queue()
+                    dispatch_async(queue, { () -> Void in
+                        
+                        if let ip = jsonResult["ip"] as? String {
+                            self.ipLabel.text = ip
+                        }
+                        
+                        if let country = jsonResult["country_code"] as? String {
+                            self.countryLabel.text = country
+                        }
+                        
+                        if let city = jsonResult["city"] as? String {
+                            self.cityLabel.text = city
+                        }
+                        
+                        if let region = jsonResult["region_name"] as? String {
+                            self.regionLabel.text = region
+                        }
+                        
+                        if let zip = jsonResult["zip_code"] as? String {
+                            self.zipLabel.text = zip
+                        }
+                        
+                        
+                        if let latitudeData = jsonResult["latitude"] as? Double {
+                            let latitude: CLLocationDegrees = latitudeData
+                           
+                            if let longitudeData = jsonResult["longitude"] as? Double {
+                                let longitude: CLLocationDegrees = longitudeData
+                                
+                                let latDelta: CLLocationDegrees = 0.01
+                                let lonDelta: CLLocationDegrees = 0.01
+                                let span: MKCoordinateSpan = MKCoordinateSpanMake(latDelta, lonDelta)
+                                let location: CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
+                                let region: MKCoordinateRegion = MKCoordinateRegionMake(location,span)
+                                self.map.setRegion(region, animated: true)
+                                
+                                let annotation = MKPointAnnotation()
+                                annotation.coordinate = location
+                                annotation.title = "Your IP"
+                                annotation.subtitle = "is somewhere around here"
+                                self.map.addAnnotation(annotation)
+                                
+                            }
+                            
+                        }
+                        
+                        
+                    })
 
-                    
-                  
-                    
-                    /*
-                    self.ipLabel.text =
-                    self.countryLabel.text =
-                    self.cityLabel.text = 
-                    self.regionLabel.text = 
-                    self.zipLabel.text =
-
-                    
-                    var latitude: CLLocationDegrees = jsonResult(["latitude"])
-                    var longitude: CLLocationDegrees = jsonResult(["longitude"])
-                    var latDelta: CLLocationDegrees = 0.01
-                    var lonDelta: CLLocationDegrees = 0.01
-                    var span: MKCoordinateSpan = MKCoordinateSpanMake(latDelta, lonDelta)
-                    var location: CLLocationCoordinate2D = CLLocationCoordinate2DMake(latitude, longitude)
-                    var region: MKCoordinateRegion = MKCoordinateRegionMake(location,span)
-                    self.map.setRegion(region, animated: true)
-                    */
-                    
-                    
                     
                 } catch {
                     
-                    print("JSON Serialization failed")
                     self.findMeButtonLabel.setTitle("Try Again", forState: .Normal)
+                    print("JSON Serialization failed")
                     
                 }
                 
